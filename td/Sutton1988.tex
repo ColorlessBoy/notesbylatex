@@ -1,0 +1,615 @@
+% notes of Learning to Predict by the Methods of Temporal Differences
+
+\section{Learning to Predict by the Methods of Temporal Differences\cite{Sutton1988}}
+
+\begin{itemize}
+	\item \emph{simgle-step}: all information about the correctness of each prediction is revealed at once.
+	\item \emph{multi-step}: correctness is not revealed until more than one step after the prediction is made.
+\end{itemize}
+
+In this paper, we will be concerned only with multi-step prediction problems.
+
+We consider multi-step prediction problems in such sequences
+$ \mathbf{x_1}, \mathbf{x_2}, \dots, \mathbf{x_m}, z $. For each observation-outcome sequence, 
+we have predictions
+$ P_1, P_2, \dots, P_m $. $ P_i$ is a shorthand for $ P_i(\mathbf{x_i}, \mathbf{w_i}) $,
+which is an estimate of z.
+
+In view of supervised-learning approach, the sequences is considered as
+$ (\mathbf{x_1}, z, P_1), (\mathbf{x_2}, z, P_2), \dots, (\mathbf{x_m}, z, P_m) $.
+So the empirical loss is 
+\[ 
+    l_{sq} = \mathbb{E}_s \{ {( \mathbb{E}(z | s) - P( \mathbf{w})(s))}^2 \} = \frac{1}{2m} \sum\limits^{m}_{t=1} {( z - P_t )}^2
+\]
+If we use stochastic gradient descent method, we have
+\[ 
+	\mathbf{w}_{t+1} = \mathbf{w}_{t} + \alpha (z - P_t)\nabla_{\mathbf{w}_{t}} P_t
+\]
+which means
+\begin{equation}
+	\Delta \mathbf{w}_{t+1} = \alpha(z - P_{t}) \nabla_{\mathbf{w}_{t}} P_t
+\end{equation}
+Let $ P_{m+1} = z $, then
+\begin{align*}
+    \mathbf{w}_{m+1} =& \mathbf{w}_{1} + \sum\limits^{m}_{t=1} \alpha(z - P_t) \nabla_{\mathbf{w}_{t}} P_t\\
+	=& \mathbf{w}_{1} + \sum\limits^{m}_{t=1} \alpha
+    \sum\limits^{m}_{k=t}(P_{k+1} - P_k) \nabla_{\mathbf{w}_{t}} P_t \\
+    =& \mathbf{w}_{1} + \sum\limits^{m}_{k=1} \alpha (P_{k+1} - P_k) 
+	\sum\limits^{k}_{t=1}\nabla_{\mathbf{w}_{t}} P_t\\
+    =& \mathbf{w}_{1} + \sum\limits^{m}_{t=1} \alpha (P_{t+1} - P_t) 
+	\sum\limits^{t}_{k=1}\nabla_{\mathbf{w}_{k}} P_k
+\end{align*}
+which means
+\begin{equation}
+    \Delta \mathbf{w}_{t} = \alpha (P_{t+1} - P_t) \sum\limits^{t}_{k=1}\nabla_{\mathbf{w}_{k}} P_k
+\end{equation}
+If we update $ \mathbf{w} $ immediately, it's too complex to analyse.
+\[
+    \Delta \mathbf{w}_{t} = \alpha \mathbf{w}_{t}^T ( \mathbf{x}_{t+1} - \mathbf{x} _{t}) \sum^{t}_{k=1} \mathbf{x}_k
+    + \alpha( \mathbf{x}^T_{t+1} \Delta\mathbf{w}_{t} \sum^{t}_{k=1} \mathbf{x}_k )
+\]
+So we update $ \mathbf{w} $ after each whole sequence.
+\[
+    \Delta \mathbf{w}_{t} = \alpha \mathbf{w}_{0}^T ( \mathbf{x}_{t+1} - \mathbf{x} _{t}) \sum^{t}_{k=1} \mathbf{x}_k
+\]
+\[
+    \mathbf{w}_m = \mathbf{w}_0 + \sum^{m}_{t=1} \Delta\mathbf{w}_t
+\]
+
+This equation can be computed incrementally.
+
+\begin{thm}
+	On multi-step prediction problems, the linear $TD(1)$ pro cedure produces
+	the same per-sequence weight changes as the Widrow-Hoff procedure.
+\end{thm}
+
+\begin{defn} 
+	($TD(\lambda)$) 
+	\begin{equation}
+		\Delta \mathbf{w}_{t} = \alpha(P_{t+1} - P_{t})
+		\sum\limits^{t}_{k=1}\lambda^{t-k} \nabla_{\mathbf{w}_{k}} P_k
+	\end{equation}
+\end{defn}
+This also can be computed incrementally
+\begin{align*}
+	e_{t+1} =& \sum\limits^{t+1}_{k=1} \lambda^{t+1-k} \nabla_{\mathbf{w}_{k}} P_k \\
+	=& \nabla_{\mathbf{w}_{t+1}} P_{t+1} +  \sum\limits^{t}_{k=1} \lambda^{t+1-k} \nabla_{\mathbf{w}_{k}} P_k \\
+	=& \nabla_{\mathbf{w}_{t+1}} P_{t+1} + \lambda e_t
+\end{align*}
+We can get, when 
+\[ 
+	\lambda = 0, \quad \Delta \mathbf{w}_{t} = \alpha(P_{t+1} - P_{t}) \nabla_{\mathbf{w}_{t}} P_t
+\]
+
+\begin{align*}
+    \label{eq:4}
+    \mathbf{w}_{m+1} =& \mathbf{w}_{1} + \sum^{m}_{t=1} \alpha(P_{t+1}-P_{t})
+        \sum^{t}_{k=1} \lambda^{t-k} \nabla_{\mathbf{w}_{k}} P_k \\
+    =&\mathbf{w}_{1} + \alpha \sum^{m}_{k=1} \nabla_{\mathbf{w}_{k}} P_k 
+        \sum^{m}_{t=k} (P_{t+1} - P_{t}) \lambda^{t-k} \\
+        &\text{(exchange the sum operations and the meanings of k and t)} \\
+    =&\mathbf{w}_{1} + \alpha \sum^{m}_{t=1} \nabla_{\mathbf{w}_{t}} P_t
+    \left\{ \lambda^{m-t} z +(1-\lambda)\sum^{m-1}_{k=t}\lambda^{k-t} P_{k+1} - P_t  \right\} \\
+    =&\mathbf{w}_{1} + \alpha \sum^{m}_{t=1} \nabla_{\mathbf{w}_{t}} P_t
+        \left\{ (1-\lambda)\sum^{\infty}_{k=t}\lambda^{k-t} P_{k+1} - P_t  \right\} \\
+        & (P_{m+1} = P_{m+2} = \cdots = z)
+\end{align*}
+This format is useful in the discussion of the convergence of $TD(\lambda)$ 
+for General $\lambda$.~\cite{Dayan1992}
+
+We already have the proof of $TD(1)$ which is equal to the supervised learning method.
+Now we discuss the convergence of $TD(0)$.
+
+\begin{defn}
+    (The ideal predictions)
+    Let $\mathbf{\mu}$ be the probablity distribution of initial states,
+    and $Q$ be the probablity transfer matrix without terminal states.
+    \begin{equation}
+        \mathbb{E}\{\mathbf{z}\} = 
+            \sum^{\infty}_{k=0} Q^k<\mathbf{\mu}, \mathbf{z}> 
+            = {(I-Q)}^{-1}<\mathbf{\mu}, \mathbf{z}>
+    \end{equation}
+\end{defn}
+For example, in seven states' random walk, we have
+$\mu = {(0, 0, 0, 1, 0, 0, 0)}^T$, and $Q = $
+$
+\begin{pmatrix}
+    0& 0& 0& 0& 0& 0& 0\\
+    0& 0.5& 0& 0.5& 0& 0& 0 \\ 
+    0& 0& 0.5& 0& 0.5& 0& 0 \\
+    0& 0& 0& 0.5& 0& 0.5& 0 \\
+    0& 0& 0& 0& 0.5& 0& 0 \\
+    0& 0& 0& 0& 0& 0& 0 
+\end{pmatrix}
+$
+
+\begin{proof}
+    For simplicity, we only update $ \mathbf{w} $ after each sequence.
+    \begin{align*}
+        \mathbf{w}_{n+1} =& \mathbf{w}_{n} + \sum^{m-1}_{t=1} \alpha(P_{n,t+1} - P_{n,t}) \mathbf{x}_{n,t}
+        + \alpha (z_n - P_{n,m}) \mathbf{x}_{n,m} \\
+        =& \mathbf{w}_{n} + \alpha\sum^{}_{i \in N} \sum^{}_{j \in N} c_{ij} (P_{n,j} - P_{n,i}) \mathbf{x}_{n,i} 
+        +\alpha\sum^{}_{i \in N} \sum^{}_{j \in T} c_{ij} (z_n - P_{n,i}) \mathbf{x}_{n,i} \\
+         &(c_{ij} \text{\ is the number of transfer from state i to state j})\\
+        \mathbb{E}\{\mathbf{w}_{n+1} | \mathbf{w}_{n}\} 
+        =& \mathbf{w}_{n} + \alpha\sum^{}_{i \in N} \sum^{}_{j \in N} d_i p_{ij} (P_{n,j} - P_{n,i}) \mathbf{x}_{n,i} 
+        +\alpha\sum^{}_{i \in N} \sum^{}_{j \in T} d_i p_{ij} (\mathbb{E}z_{n} - P_{n,i}) \mathbf{x}_{n,i} \\
+    \end{align*}
+    If we update $w_n$ after each sequences, we can get simple format:
+    \[
+        \mathbb{E}\{\mathbf{w}_{n+1} | \mathbf{w}_{n} \}
+        = \mathbf{w}_n + \alpha\sum^{}_{i \in N} \sum^{}_{j \in N} d_i p_{ij} 
+        \mathbf{w}_n^T (\mathbf{x}_j - \mathbf{x}_i) \mathbf{x}_{n,i} 
+        +\alpha\sum^{}_{i \in N} \sum^{}_{j \in T} d_i p_{ij} 
+        (\mathbb{E}z_{n} - \mathbf{w}_n^T\mathbf{x}_i) \mathbf{x}_{n,i} \\
+    \]
+    where $d_i$ is the expected occurrence times of state i, and its easy to proof that
+    \[ \mathbf{d}^T = \mu^T {(I-Q)}^{-1}.\]       
+    Then we can reformat the equation into
+    \[
+        \mathbb{E}\{\mathbf{w}_{n+1} | \mathbf{w}_{n} \} = \mathbf{w}_n
+        + \alpha X D(<\mu, \mathbb E \mathbf z> + QX^T\mathbf{w}_n - X^T\mathbf{w}_n)
+    \]
+    where $X = (\mathbf{x}_1, \ldots, \mathbf{x}_m)$ and 
+    $ D = diag(d_1, d_2, \ldots, d_n) $.
+
+    Taking both side's expectation, we have:
+    \[
+        \mathbb{E}\{\mathbf{w}_{n+1} \} = \mathbb{E} \{\mathbf{w}_n \}
+        + \alpha X D(<\mu, \mathbb E \mathbf z> + QX^T\mathbb E\{\mathbf{w}_n\} 
+        - X^T\mathbb E \mathbb\{\mathbf{w}_n\})
+    \]
+    On both side, we multiply $X^T$:
+    \begin{align*}
+        \label{eq:5}
+        \mathbb{E}\{X^T\mathbf{w}_{n+1} \} =& \mathbb{E} \{X^T\mathbf{w}_n \}
+        + \alpha X^T X D(<\mu, \mathbb E \mathbf z> + Q\mathbb E\{X^T\mathbf{w}_n\} 
+        - \mathbb E \mathbb\{X^T\mathbf{w}_n\})\\
+        =& \sum^{n-1}_{k=0} {(I - \alpha X^T XD(I-Q))}^k \alpha X^T XD
+        <\mu, \mathbb E \mathbf z> \\
+         & + {(I - \alpha X^T XD(I-Q))}^n \mathbb{E}\{X^T \mathbf w_0\}
+    \end{align*}
+    If $\lim_{n \to \infty} {(I- \alpha X^T X D(I-Q))}^n = 0$, 
+    and $D^{-1}$ and ${(X^T X)}^{-1}$ exist, then we have:
+    \begin{equation}
+        \begin{aligned}
+            \lim_{n \to \infty} \mathbb{E}\{X^T \mathbf{w}_{n+1} \} 
+            &= {(I - (I-\alpha X^T XD(I-Q)))}^{-1} 
+                \alpha X^T X D <\mu, \mathbf{z} > \\
+           &= {(I - Q)}^{-1}<\mu,\mathbf{z}>
+        \end{aligned}
+    \end{equation}
+\end{proof}
+
+The full proof of $\lim_{n \to \infty} {(I- \alpha X^T X D(I-Q))}^n = 0$ is 
+in the paper.Noticing that this proof also requires that
+$D^{-1}$ and ${(X^T X)}^{-1}$ exist.
+
+Why we need to show that $ X^T X D (I - Q) $ has a full set of eigenvalues
+all of whose real parts are positive?
+\begin{proof}
+    \textbf{Step1}: $S = D(I-Q) + {(D(I-Q))}^T$ is strictly diagonally dominant matrix with positive diagonal entries, 
+    so $ D(I-Q) $ is positive definite.
+    \textbf{Step2}:
+    Let $ \lambda $ and $ \textbf{y} $ be any eigenvalue-eigenvector pair of matrix $ X^T X D (I - Q) $,
+    and $ z = {(X^T X)}^{-1} y $. Then,
+    \[
+        y^* D (I - Q) y = z^* X^T X D (I - Q) y 
+        = z^* \lambda y = \lambda z^* X^T X z
+        = \lambda {(Xz)}^* Xz
+    \]
+    So,
+    \[
+        Re(y^* D(I-Q) y) = Re(\lambda{(Xz)}^* Xz)
+    \]
+    \[
+        a^T D (I - Q) a + b^T D (I - Q) b = {(Xz)}^* Xz Re(\lambda)
+    \]
+    \[
+        Re(\lambda) > 0
+    \]
+\end{proof}
+
+Here requires the indenpendence of the 
+representation of $ X $, not the sequences such as
+$ (\textbf{x}_1, \textbf{x}_2, \dots, \textbf{x}_m, z) $ 
+
+\section{The Convergence of $TD(\lambda)$ for General $\lambda$~\cite{Dayan1992}}
+
+\begin{align*}
+    \label{eq:6}
+    \mathbf{w}^{(m+1)} 
+    =&\mathbf{w}^{(1)} + \alpha \sum^{m}_{t=1} \nabla_{\mathbf{w}^{(t)}} P_t
+    \left\{ (1-\lambda)\sum^{\infty}_{k=t}\lambda^{k-t} P_{k+1} - P_t  \right\} \\
+     & (P_{m+1} = P_{m+2} = \cdots = z)
+\end{align*}
+
+Similarly, we only update $\mathbf{w}_n$ after each sequence.So
+\begin{proof}
+\begin{equation}
+    \begin{aligned}
+        \label{eq:6}
+        \mathbf{w}_{n+1}
+        =&\mathbf{w}_{n} + \alpha \sum^{m}_{t=1} \mathbf{x}^{(t)}
+            \left\{ \lambda ^{m-t} z + (1-\lambda)\sum^{m-1}_{k=t}\lambda^{k-t}P_{k+1}-  \mathbf{w}_n^T
+            \mathbf{x}^{(t)}  \right\} \\ 
+        =&\mathbf{w}_{n} + \alpha \sum^{}_{i \in N} c_i \textbf{x} _{i} 
+        \left( 
+        \begin{bmatrix}
+            (1-\lambda)\sum^{}_{j\in N} c _{ij|i} \textbf{w}^T_n \textbf{x}_j + \sum^{}_{j\in T}  c _{ij|i} z_j \\
+            +(1-\lambda)\lambda( \sum^{}_{k\in N} \sum^{}_{j \in N} c _{ikj|i} \textbf{w}^T_n \textbf{x}_j )
+            + \lambda \sum^{}_{k \in N} \sum^{}_{j \in T} c _{ikj|i} z_j \\
+            +\ldots
+        \end{bmatrix} 
+          - \textbf{w}^T_n \textbf{x}_i 
+        \right) \\
+        \mathbb{E} \{ \textbf{w} _{n+1} | \textbf{w} _{n} \}
+        =&\mathbf{w}_{n} + \alpha \sum^{}_{i \in N} d_i \textbf{x} _{i} 
+        \left( 
+        \begin{bmatrix}
+            (1-\lambda)\sum^{}_{j\in N} p _{ij} \textbf{w}^T_n \textbf{x}_j + \sum^{}_{j\in T}  p _{ij} z_j \\
+            +(1-\lambda)\lambda( \sum^{}_{k\in N} \sum^{}_{j \in N} p _{ikj} \textbf{w}^T_n \textbf{x}_j )
+            + \lambda \sum^{}_{k \in N} \sum^{}_{j \in T} p _{ikj} z_j \\
+            +\ldots
+        \end{bmatrix} 
+          - \textbf{w}^T_n \textbf{x}_i 
+        \right) \\
+        =&\mathbf{w}_{n} + \alpha \sum^{}_{i \in N} d_i \textbf{x} _{i} 
+        \left( 
+        \begin{bmatrix}
+            (1-\lambda) Q \textbf{x}^T \textbf{w}_n + h \\
+            + (1-\lambda) \lambda (Q ^{2} \textbf{x}^T \textbf{w}_n) + \lambda Qh  \\
+            + \ldots
+        \end{bmatrix} 
+          - \textbf{w}^T_n \textbf{x}_i 
+        \right) \\
+        =& \textbf{w} _{n} + \alpha X D
+        \left\{
+            [ {(I - \lambda Q)} ^{-1} h
+            + (1-\lambda) {(I - \lambda Q)} ^{-1} Q X^T \textbf{w} ^{n} ]
+            - X^T\textbf{w}_n 
+        \right\} \\
+        (h = < \textbf{p}, \textbf{z} >)& \\
+        \mathbb{E} \{ X^T \textbf{w} _{n+1} \}
+        =& \left\{ I- \alpha X^T X D [ I - (1-\lambda) {(I-\lambda Q) }^{-1} Q ] \right\}\mathbb{E} \{ X^T \textbf{w} _{n} \}\\
+         &+ \alpha X^T X D{(I - \lambda Q) } ^{-1} h \\
+        =& {\left\{ I- \alpha X^T X D [ I - (1-\lambda) {(I-\lambda Q) }^{-1} Q ] \right\}}^n 
+            \mathbb{E} \{ X^T \textbf{w} _{1} \}\\
+         &+ \sum^{n}_{k=0} {\left\{ I- \alpha X^T X D [ I - (1-\lambda) {(I-\lambda Q) }^{-1} Q ] \right\}}^k \\
+         &\alpha X^T X D{(I - \lambda Q) } ^{-1} h \\
+        \lim_{n \to \infty} 
+        \mathbb{E} \{ X^T \textbf{w} _{n} \} 
+        =& {\left\{  \alpha X^T X D [ I - (1-\lambda) {(I-\lambda Q) }^{-1} Q ]  \right\}} ^{-1}
+            \alpha X^T X D{(I - \lambda Q) } ^{-1} h \\
+        =& {\left\{ I - (1-\lambda) {(I-\lambda Q) }^{-1} Q \right\}} ^{-1}
+            {(I - \lambda Q) } ^{-1} h \\
+        =& {\left\{ {(I - \lambda Q) } [I - (1-\lambda) {(I-\lambda Q) }^{-1} Q] \right\}} ^{-1} h \\
+        =&{(I - Q)} ^{-1} h
+    \end{aligned}
+\end{equation}
+\end{proof}
+
+\begin{thm}
+\begin{equation}
+     \lim_{n \to \infty}{\left\{ I- \alpha X^T X D [ I - (1-\lambda) {(I-\lambda Q) }^{-1} Q ] \right\}}^n =0
+\end{equation}
+\begin{proof}
+    \begin{equation}
+        \begin{aligned}
+            S^r =& D(I-Q^r) + {[D(I-Q^r)]}^T\\
+            S^r_{ii} =& 
+            \begin{cases}
+                2d_i(1-Q^r_{ii}) > 0 ,\quad i=j \\
+                -d_i Q^r_{ij} - d_j Q^r_{ji} < 0,\quad i\ne j
+            \end{cases} \\
+            \sum^{}_{j} S^r_{ij} 
+            =& d_i \left( 1 - \sum^{}_{j}  Q^r_{ij} \right) +
+            {[\mathbf{\mu}^T {(I - Q)}^{-1}(I-Q^r) ]}_i \\
+            =& d_i \left( 1 - \sum^{}_{j}  Q^r_{ij} \right) +
+            {{[ \mathbf{\mu}^T (I + Q + Q^2 + \cdots + Q^{r-1}) ] }_i} \ge 0 \\
+            (1-\lambda) \sum^{\infty}_{r=1} \lambda ^{r-1} S^r 
+            =& 
+            D(I - (1-\lambda) \sum^{n}_{r=1} \lambda ^{t-1} Q^r)+
+            {\left[D(I - (1-\lambda) \sum^{n}_{r=1} \lambda ^{t-1} Q^r)\right]}^T \\
+            =& D(I - (1-\lambda){(I - \lambda Q)} ^{-1} Q)
+            + {\left[ D(I - (1-\lambda){(I - \lambda Q)} ^{-1} Q) \right] }^T \\
+             & \succ 0 (\text{strictly diagonally dominant matrix})
+        \end{aligned}
+    \end{equation}
+    Lefting to proof that the matrix has a full set of eigenvalues all of whose real parts are positive.
+\end{proof}
+\end{thm}
+
+\section{An Analysis of Temporal-Difference Learning with Function Approximation~\cite{Tsitsiklis1997}}%
+\label{sec:an_analysis_of_temporal_difference_learning_with_function_approximation}
+
+\subsection{Definition of Temporal-Difference Leraning}%
+\label{sub:definition_of_temporal_difference_leraning}
+
+\begin{enumerate}
+    \item Markov chains:
+        \begin{itemize}
+            \item State space: $ S = \{s^1, \dots, s^n\} $
+            \item Markov chain: $ \{ s_t | t = 0, 1, \dots \} $ 
+            \item State transition matrix: $ P = [ p_{ij} ] $
+            \item Reward matrix: $ R = [ r_{ij} ] $ 
+            \item Cost-to-go function:
+                $ V^*(s) = \mathbb{E}[ \sum^{\infty}_{t=0} \alpha^t r_{s_t, s_{t+1}} | s_0 = s ]
+                = \sum^{\infty}_{t=0} {(\alpha P)}^t \langle P, R \rangle$ 
+        \end{itemize}
+    \item $TD(\lambda)$:
+        \begin{itemize}
+            \item State matrix: $ \Phi = [\phi(s_1), \phi(s_1), \dots, \phi(s_n) ]  $ 
+            \item Approximation function: $ V( \mathbf{w}_t ) $ 
+            \item Linear approximation function $ V( \mathbf{w}_t ) = \Phi^T \mathbf{w}_t $
+            \item Temporal difference: $ d_t = r_{s_t, s_{t+1}} + \alpha V(\mathbf{w}_t)(s_{t+1})  - V(\mathbf{w}_t)(s_t) $ 
+            \item Update rule:
+                $ \mathbf{w}_{t+1} = \mathbf{w}_t + \gamma_t d_t
+                \sum^{t}_{k=0} {(\alpha\gamma)}^{t-k} \nabla_{ \mathbf{w}_t} V( \mathbf{w}_t )(s_k) $ 
+            \item Eligibility vector:
+                \begin{equation}
+                    \begin{aligned}
+                        \mathbf{z}_t =& \sum^{t}_{k=0} {(\alpha\lambda)}^{t-k} \nabla V( \mathbf{w}_t )(s_k) \\
+                        =&  \sum^{t}_{k=0} {(\alpha\lambda)}^{t-k} \phi(s_k) \\
+                        =& \phi(s_{t}) + \alpha\lambda \mathbf{z}_{t-1}\quad ( \mathbf{z}_{-1} = 0 )
+                    \end{aligned}
+                \end{equation}
+        \end{itemize}
+\end{enumerate}
+
+\subsection{Understanding Temporal-Difference Learning}%
+\label{sub:understanding_temporal_difference_learning}
+
+\begin{enumerate}
+    \item Inner product space concepts and notation:
+        \begin{itemize}
+            \item Steady-state: $ \pi = \{ \pi(1), \dots, \pi(n) \} $, s.t. ($ \pi^T P = \pi^T $)
+            \item Diagonal matrix: $ D = diag(\pi) $ 
+            \item The set of vectors: $ L_2(S, D) = \{ V \in R^n | \Arrowvert V \Arrowvert_D < \infty \} $ 
+            \item Projection matrix: $ \Pi = \Phi^T {(\Phi D \Phi^T)}^{-1} \Phi D $,\\
+                where
+                \quad $ \Pi J = \arg\underset{J' \in \{ \Phi \mathbf{w} | \mathbf{w} \in R^K \}}{\min} 
+                \Arrowvert J - J' \Arrowvert_D $ 
+        \end{itemize}
+    \item The $ TD(\lambda)$ Operator:
+        \begin{itemize}
+            \item $TD(\lambda)$ operator: 
+                \begin{equation}
+                    \begin{aligned}
+                        (T^{(\lambda)} V)(s) =& (1-\lambda) \sum^{\infty}_{m=0} \lambda^m
+                        \mathbb{E} \left[  \sum^{m}_{t = 0} \alpha^t r_{s_t, s_{t+1}} + 
+                        \alpha^{m+1} V(s_{m+1}) \arrowvert s_0 = s\right]\\
+                        =& (1-\lambda) \sum^{\infty}_{m=0} \lambda^m
+                        \left( \sum^{m}_{t=0} {(\alpha P)}^t \langle P, R \rangle + {(\alpha P )}^{m+1} V \right)(s)
+                    \end{aligned}
+                \end{equation}
+            \item For $ \lambda < 1 $ and $ \lambda \rightarrow 1 $  
+                \[
+                    (T^{(1)} V) (s) = \lim_{\lambda \uparrow 0} (T^{(\lambda)} V) (s) = V^* (s)
+                \]
+            \item Def: $ \Delta( \mathbf{w}_t, X_t = (s_t, s_{t+1}, z_t) ) = (r_{s_t, s_{t+1}} 
+                + \alpha V( \mathbf{w}_t )(s_{t+1}) - V( \mathbf{w}_t )(s_t)) \mathbf{z}_t $ 
+                then, $ \mathbf{w}_{t+1} = \mathbf{w}_{t} + \gamma_t \Delta( \mathbf{w}_t, X_t )$  
+            \item We can proof that:\\
+                $ \lim_{t \to \infty} \mathbb{E}_0[\Delta( \mathbf{w}, X_t)] 
+                = \lim_{t \rightarrow \infty} \mathbb{E}_{s\sim\pi}[\Delta( \mathbf{w}, X_t) | X_0]  
+                = \Phi D( T^{(\lambda)}
+                (\Phi^T \mathbf{w}) - \Phi^T \mathbf{w})$
+            \item From preceeding result, we can get that $TD(\lambda)$ is the method for minimizing
+                $L_{sq} = \Arrowvert T^{(\lambda)}(\Phi \mathbf{w}) - V( \mathbf{w}) \Arrowvert^2_D $
+        \end{itemize}
+    \item Assumption1:
+        \begin{itemize}
+            \item The Markov chain is irreducible and aperiodic. 
+                Furthermore, it has unique steady-state satisfying $ \pi^T P = \pi^T $
+            \item $ \mathbb{E}_0 [r^2_{s_t, s_{t+1}}] 
+                = \mathbb{E}_{s \sim \pi} [r^2_{s_t,s_{t+1}} | s_0 = s] < \infty $.\\
+                Let $ R_2 = [ r^2_{ij} ] $, then
+                $ \mathbb{E}_0 [r^2_{s_t, s_{t+1}}] = \pi^T P^t \langle P, R_2 \rangle 
+                = \pi^T \langle P, R_2 \rangle$ 
+        \end{itemize}
+    \item Assumption2:
+        \begin{itemize}
+            \item $ \Phi $ has full row column.
+            \item For every row $ \phi_k $ in $ \Phi $, $ \mathbf{E}_0 [\phi_k^2(s_k)] < \infty $  
+        \end{itemize}
+\end{enumerate}
+
+\subsection{Preliminaries}%
+\label{sub:preliminaries}
+
+\begin{lem}
+    $ \Arrowvert PV \Arrowvert_D \le \Arrowvert V \Arrowvert_D $ 
+    \begin{proof}
+        \begin{equation}
+            \begin{aligned}
+                \Arrowvert PV \Arrowvert^2_D =& V^T P^T D P V = 
+                \sum^{n}_{i=1} \pi(i) {( \sum^{n}_{j=1} p_{ij} V(j))}^2 \\
+                \le& \sum^{n}_{i=1} \pi(i) \sum^{n}_{j=1} p_{ij} V^2(j)
+                = \sum^{n}_{j=1} \sum^{n}_{i=1} \pi(i) p_{ij} V^2(j) \\
+                =& \sum^{n}_{j=1} \pi(j) V^2(j) = \Arrowvert V \Arrowvert^2_D 
+            \end{aligned}
+        \end{equation}
+    \end{proof}
+\end{lem}
+
+\begin{lem}
+    $ V^* \in L_2(S,D) $ 
+    \begin{proof}Here\\
+        $ \Arrowvert \langle P, R \rangle \Arrowvert_D 
+        = \sum^{n}_{i=1} \pi(i) {( \sum^{n}_{j=1} p_{ij} r_{ij})}^2  
+        \le \sum^{n}_{i=1} \pi(i) \sum^{n}_{j=1} p_{ij} r^2_{ij}
+        \le \mathbb{E}_0[r^2_{ij}] < \infty$ \\
+        $ \Arrowvert V^* \Arrowvert_D \le \sum^{\infty}_{t=0} \alpha^t \Arrowvert  P^t \langle P, R \rangle \Arrowvert_D 
+        \le \sum^{\infty}_{t=0} \alpha^t \Arrowvert \langle P, R \rangle \Arrowvert_D 
+        \le \frac{1}{1-\alpha} \Arrowvert \langle P, R \rangle \Arrowvert_D < \infty $
+    \end{proof}
+\end{lem}
+
+\begin{lem}
+    If $ V \in L_2(S,D) $, then $ T^{(\lambda)} V \in L_2(S,D) $. 
+    Furthermore, $ T^{(\lambda)} $ is a contraction mapping function. 
+    \begin{proof}
+        \begin{equation}
+            \begin{aligned}
+                T^{(\lambda)} V =& (1-\lambda) \sum^{\infty}_{m=0} \lambda^m
+                \left( \sum^{m}_{t=0} {(\alpha P)}^t \langle P, R \rangle + {(\alpha P )}^{m+1} V \right)\\
+                \Arrowvert T^{(\lambda)}V \Arrowvert_D
+                \le& (1-\lambda) \sum^{\infty}_{m=0} \lambda^m 
+                \left( \sum^{m}_{t=0} \alpha^t \Arrowvert \langle P, R \rangle \Arrowvert_D
+                + \alpha^{m+1} \Arrowvert V \Arrowvert_D\right) \le \infty \\
+                \Arrowvert T^{(\lambda)}V_1 - T^{(\lambda)}V_2 \Arrowvert_D
+                \le& (1-\lambda) \sum^{\infty}_{m=0} \lambda^m \alpha^{m+1} \Arrowvert V_1 - V_2 \Arrowvert_D\\
+                =& \frac{\alpha(1-\lambda)}{1-\alpha \lambda}  \Arrowvert V_1 - V_2 \Arrowvert_D
+            \end{aligned}
+        \end{equation}
+    \end{proof}
+\end{lem}
+
+\begin{lem}
+    $ V^* = T^{(\lambda)} V^* $, and $ V^* $ is the uniquely solves of equations $ V = T^{(\lambda)} V $.
+    \begin{proof}
+        \begin{equation}
+            \begin{aligned}
+                T^{(\lambda)} V^* 
+                =& (1-\lambda) \sum^{\infty}_{m=0} \lambda^m
+                \left( \sum^{m}_{t=0} {(\alpha P)}^t \langle P, R \rangle + {(\alpha P )}^{m+1} V^* \right)\\
+                =& (1-\lambda) \sum^{\infty}_{m=0} \lambda^m
+                \left( \sum^{m}_{t=0} {(\alpha P)}^t \langle P, R \rangle 
+                + {(\alpha P )}^{m+1} \sum^{m}_{t=0} {(\alpha P)}^t \langle P, R \rangle \right)\\
+                =& (1-\lambda) \sum^{\infty}_{m=0} \lambda^m
+                \left( \sum^{\infty}_{t=0} {(\alpha P)}^t \langle P, R \rangle \right) = V^*\\
+            \end{aligned}
+        \end{equation}
+        The uniqueness comes from preceding lemma.
+    \end{proof}
+\end{lem}
+
+\begin{lem}
+    $ \Pi T^{(\lambda)} $ is a contraction and has a unique fixed point which is of the form $ \Phi \mathbf{w}^* $ 
+    for a unique choice of $ \mathbf{w}^* $. Furthermore, $ \mathbf{w}^* $ sarisfies the following bound:
+    \[
+        \Arrowvert \Phi^T \mathbf{w}^* - V^* \Arrowvert_D
+        \le \frac{1-\lambda \alpha}{1-\alpha} \Arrowvert \Pi V^* - V^* \Arrowvert_D
+    \]
+    \begin{proof}
+        The proof of uniqueness is trivial, but the existance has no proof so far.
+       \begin{equation}
+           \begin{aligned}
+               \Arrowvert \Phi^T \mathbf{w}^* - V^* \Arrowvert_D
+               \le& \Arrowvert \Phi^T \mathbf{w}^* - \Pi V^* \Arrowvert_D 
+               + \Arrowvert \Pi V^* - V^* \Arrowvert_D \\
+               =& \Arrowvert \Pi T^{(\lambda)}\Phi^T \mathbf{w}^* - \Pi V^* \Arrowvert_D 
+               + \Arrowvert \Pi V^* - V^* \Arrowvert_D \\
+               \le& \Arrowvert T^{(\lambda)}\Phi^T \mathbf{w}^* - V^* \Arrowvert_D 
+               + \Arrowvert \Pi V^* - V^* \Arrowvert_D \\
+               \le& \frac{\alpha(1-\lambda)}{1-\alpha\lambda} \Arrowvert \Phi^T \mathbf{w}^* - V^* \Arrowvert_D
+               + \Arrowvert \Pi V^* - V^* \Arrowvert_D\\
+               \Arrowvert \Phi^T \mathbf{w}^* - V^* \Arrowvert_D 
+               \le& \frac{1-\lambda\alpha}{1-\alpha} \Arrowvert \Pi V^* - V^* \Arrowvert_D
+           \end{aligned}
+       \end{equation} 
+    \end{proof}
+\end{lem}
+
+\begin{lem}
+    \begin{proof}
+        \begin{equation}
+            \begin{aligned}
+                \mathbb{E}_0 [ \mathbf{z}_t \phi^T(s_t) ]
+                =& \pi^T \sum^{t}_{k=0} {(\alpha \lambda)}^{t-k}
+                \mathbb{E}[ \phi(s_k) \phi^T(s_t) |s_0 = s]\\
+                =& \sum^{t}_{k=0} {(\alpha \lambda)}^{t-k}
+                \pi^T P^k \mathbb{E}[ \phi(s_k) \phi^T(s_t) |s_k = s]\\
+                =& \sum^{t}_{k=0} {(\alpha \lambda)}^{t-k}
+                \pi^T \mathbb{E}[ \phi(s_k) \phi^T(s_t) |s_k = s]\\
+                =& \sum^{t}_{k=0} {(\alpha \lambda)}^{t-k}
+                \pi^T \Phi D P^{t-k} \Phi^T \\
+                =& \sum^{t}_{m=0} {(\alpha \lambda)}^{m}
+                \pi^T \Phi D P^{m} \Phi^T \quad (m = t-k)
+            \end{aligned}
+        \end{equation}
+        (The proof of $\Arrowvert \Phi D P^m \Phi^T \Arrowvert_D < \infty$ is in the paper.)\\
+        Similarly, we can get
+        \begin{equation}
+            \begin{aligned}
+                \mathbb{E}_0 [\Delta( \mathbf{w}, X_t )]
+                =& \Phi D \sum^{t}_{m=0} {(\alpha \lambda P)}^m ( \langle P, R \rangle 
+                + \alpha P \Phi^T \mathbf{w} - \Phi^T \mathbf{w})\\
+                \sum^{\infty}_{m=0} {(\alpha \lambda P)}^m 
+                =& (1-\lambda) \sum^{\infty}_{m=0} \lambda^m \sum^{m}_{t=0} {(\alpha P)}^t\\
+                \lim_{t \to \infty} \mathbb{E}_0 [\Delta( \mathbf{w}, X_t )]
+                =& \Phi D \sum^{\infty}_{m=0} {(\alpha \lambda P)}^m ( \langle P, R \rangle 
+                + \alpha P \Phi^T \mathbf{w} - \Phi^T \mathbf{w})\\
+                =& \Phi D 
+                \left(
+                    (1-\lambda) \sum^{\infty}_{m=0} \lambda^m \sum^{m}_{t=0} {(\alpha P)}^t \langle P, R \rangle
+                 + ((1-\lambda) \sum^{\infty}_{m=0} \lambda^m {(\alpha P)}^{m+1} - I ) \Phi^T \mathbf{w} \right)\\
+                =& \Phi D (T^{(\lambda)} (\Phi^T \mathbf{w}) - \Phi^T \mathbf{w} )
+            \end{aligned}
+        \end{equation}
+    \end{proof}
+\end{lem}
+
+\begin{lem}
+    $ t \rightarrow \infty, \forall \mathbf{w} \ne \mathbf{w}^*, 
+    {( \mathbf{w} - \mathbf{w^*})}^T \mathbb{E}_0 [ \Delta( \mathbf{w}, X_t ) ] < 0 $ 
+    \begin{proof}
+        When $t \rightarrow \infty$, because $\Phi D \Pi = \Phi D$, therefore \\
+        \begin{equation}
+            \begin{aligned}
+                {( \mathbf{w} - \mathbf{w^*})}^T \mathbb{E}_0 [ \Delta( \mathbf{w}, X_t ) ]
+                =& {( \mathbf{w} - \mathbf{w^*})}^T \Phi D (T^{(\lambda)}(\Phi^T \mathbf{w}) - \Phi^T \mathbf{w}) \\
+                =& {( \mathbf{w} - \mathbf{w^*})}^T \Phi D (\Pi T^{(\lambda)}(\Phi^T \mathbf{w}) - \Phi^T \mathbf{w}) \\
+                =& {( \Phi^T \mathbf{w} - \Phi^T \mathbf{w^*})}^T D 
+                (\Pi T^{(\lambda)}(\Phi^T \mathbf{w}) - \Phi^T \mathbf{w^*}\\
+                 &+ \Phi^T \mathbf{w}^* - \Phi^T \mathbf{w}) \\
+                \le& \Arrowvert  \Phi^T \mathbf{w} - \Phi^T \mathbf{w^*} \Arrowvert_D
+                \Arrowvert \Pi T^{(\lambda)}(\Phi^T \mathbf{w}) - \Phi^T \mathbf{w^*} \Arrowvert_D\\
+                   &- \Arrowvert  \Phi^T \mathbf{w} - \Phi^T \mathbf{w^*} \Arrowvert^2_D\\
+                \le& (\beta - 1)\Arrowvert  \Phi^T \mathbf{w} - \Phi^T \mathbf{w^*} \Arrowvert^2_D\\
+                ( \exists \beta < 1, &
+                   \Arrowvert \Pi T^{(\lambda)} V_1 - \Pi T^{(\lambda)} V_2 \Arrowvert_D
+                   \le \beta \Arrowvert V_1 - V_2 \Arrowvert_D)
+            \end{aligned}
+        \end{equation}
+    \end{proof}
+\end{lem}
+
+\subsection{Proof of theorem1}%
+\label{sub:proof_of_theorem1}
+
+\begin{thm}
+    \begin{enumerate} Here,
+        \item The cost-to-go function $ V^* $ is in $ L_2(S,D) $.
+        \item For any $ \lambda \in [0,1] $, the $ TD(\lambda) $ algorithm with linear function approximators,
+            converges with probability one.
+            (This needs assumption3, assumption4 and theorem2 in the paper, which is related to
+            stochastic approximation algorithm. I'm not familiar with stochastic approximation, 
+            so this part of proof isn't in the note so far.)
+        \item The limit of convergence $ r^* $ is the unique solution of the equation
+            \[
+                \Pi T^{(\lambda)} (\Phi^T \mathbf{w}^*) = \Phi^T \mathbf{ \mathbf{w}^*}.
+            \]
+        \item Furthermore, $ r^* $ satisfies
+            \[
+               \Arrowvert \Phi \mathbf{w}^* - V^* \Arrowvert_D
+               \le& \frac{1-\lambda\alpha}{1-\alpha} \Arrowvert \Pi V^* - V^* \Arrowvert_D
+            \]
+    \end{enumerate}
+\end{thm}
+
+In this section, the paper proofs that the $ TD(\lambda) $ algorithm 
+makes $ \mathbf{w}_t $ converging to $ \mathbf{w}^* $ which solves 
+$ \lim_{t \to \infty} E_0 [ \Delta( \mathbf{w^*}, X_t) ] = 0 $:
+\[
+    \Phi D (T^{(\lambda)} (\Phi^T \mathbf{w}^*) - \Phi^T \mathbf{w}^*) = 0
+\]
+Because $ \Phi D $ has full row rank, $ \Phi D = \Phi D \Pi $ and $ \Pi \Phi^T = \Phi^T $, therefore
+\[
+    \Phi D(\Pi T^{(\lambda)} (\Phi^T \mathbf{w}^*)- \Phi^T \mathbf{w}^* ) = 0 
+\]
+which means $ \Phi^T \mathbf{w}^* $ is fixed point of $ \Pi T^{(\lambda)} $. 
+
+The proof corresponds to preceeding theorem's item2.
+

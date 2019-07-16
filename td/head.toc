@@ -1,0 +1,7 @@
+\contentsline {section}{\numberline {1}Learning to Predict by the Methods of Temporal Differences\cite {Sutton1988}}{1}
+\contentsline {section}{\numberline {2}The Convergence of $TD(\lambda )$ for General $\lambda $\nobreakspace {}\cite {Dayan1992}}{5}
+\contentsline {section}{\numberline {3}An Analysis of Temporal-Difference Learning with Function Approximation\nobreakspace {}\cite {Tsitsiklis1997}}{7}
+\contentsline {subsection}{\numberline {3.1}Definition of Temporal-Difference Leraning}{7}
+\contentsline {subsection}{\numberline {3.2}Understanding Temporal-Difference Learning}{8}
+\contentsline {subsection}{\numberline {3.3}Preliminaries}{9}
+\contentsline {subsection}{\numberline {3.4}Proof of theorem1}{11}
