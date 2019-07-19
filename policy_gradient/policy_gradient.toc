@@ -1,0 +1,7 @@
+\contentsline {section}{\numberline {1}Stochastic Policy Gradient\nobreakspace {}\cite {sutton2000policy}}{2}
+\contentsline {subsection}{\numberline {1.1}Sutton's proof (I have changed a little bit.)}{2}
+\contentsline {subsection}{\numberline {1.2}Revised}{3}
+\contentsline {subsection}{\numberline {1.3}Stochastic Actor-Critic Algorithms}{4}
+\contentsline {section}{\numberline {2}Deterministic Policy Gradient\nobreakspace {}\cite {silver2014deterministic}}{4}
+\contentsline {subsection}{\numberline {2.1}Basic Proof}{4}
+\contentsline {subsection}{\numberline {2.2}The Relationship Between Stochastic and Deterministic Policy Gradient (Unfinished)}{5}
