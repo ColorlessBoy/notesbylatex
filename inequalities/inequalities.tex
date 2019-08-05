@@ -1,0 +1,131 @@
+\documentclass[a4paper]{article}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tcolorbox}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+
+% newtheorem
+\newtheorem{assumption}{Assumption}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{corollary}{Corollary}
+\newtheorem{claim}{Claim}
+\newtheorem{example}{Example}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+
+\title{Concentration Inequalities}
+\author{Peng Lingwei}
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Hoeffiding's Inequality}%
+\label{sec:hoeffiding_s_inequality}
+
+Consider the sum $ S_n = \sum^{n}_{i=1} X_i $ of independent random variable $ X_1, \ldots, X_n $.
+Then, $ \forall s > 0 $,
+\begin{align*}
+    \mathbb{P}\left\{ S_n - \mathbb{E}S_n \ge t \right\}
+    =& \mathbb{P} \left\{ \exp\left\{ s(S_n - \mathbb{E}S_n) \right\} \ge e^{st} \right\}\\
+    \le& e^{-st}\mathbb{E}e^{s(S_n - \mathbb{E}S_n)}\\
+    =& e^{-st} \prod^{n}_{i=1} \mathbb{E} e^{s(X_i - \mathbb{E}X_i)}
+\end{align*}
+\begin{lemma}
+    For a random varialble $ X $ with $ \mathbb{E}X = 0 $ and $ a \le X \le b $ then for $ s \ge 0 $,
+    \[
+        \mathbb{E} e^{sX} \le e^{s^2{(b-a)}^2 / 8}
+    \]
+    
+    \begin{proof}
+        Because $ \mathbb{E}X = 0, a \le X \le b $, therefore $ a = 0 \wedge b = 0 $ or $ a < 0 \wedge b > 0 $.\\
+        If $ a = 0 \wedge b = 0 $, $ \mathbb{E} e^{sX} \le e^{s^2{(b-a)}^2 / 8} = 1 $\\
+        Else if $ a < 0 \wedge b > 0 $:\\
+        From convexity,
+        \[
+            e^{sx} \le \frac{x - a}{b - a} e^{sb} + \frac{b - x}{b-a} e^{sa}
+            \Rightarrow
+            \mathbb{E}e^{sX} \le \frac{be^{sa} - ae^{sb}}{b-a} 
+        \]
+        Let $ f(s) = \ln\frac{be^{sa} - ae^{sb}}{b-a} $, we can analyse $ f(s) $.
+        \begin{enumerate}
+            \item $ f(0) = 0 $;
+            \item $ f'(s) = \frac{abe^{sa} - abe^{sb}}{be^{sa} - ae^{sb}} = \frac{a^2/b - a}{e^{s(a-b)} - a/b} + 1 $, $ f'(0) = 0 $;
+            \item $ f''(s) = - \frac{a}{b} {(a-b)}^2 \frac{e^{s(a-b)}}{{(e^{s(a-b)} - a/b)}^2} =  -\frac{a}{b} {(a-b)}^2 / \left\{ e^{s(a-b)} + \frac{a^2/b^2}{e^{s(a-b)}} - 2a/b \right\}$
+            $ \le -\frac{a}{b} {(a-b)}^2 / \left\{ -4a/b\right\} = \frac{1}{4} {(a-b)}^2$
+            \item $ f(s)= f(0) + f'(0)s + \frac{f''(\theta s)}{2} s^2 \le \frac{1}{8} {(a - b)}^2 s^2  $
+        \end{enumerate}
+    \end{proof}
+\end{lemma}
+\begin{align*}
+    \mathbb{P}(S_n - \mathbb{E}S_n \ge t) \le& \inf_{s>0} \left( e^{-st} \prod^{n}_{i=1} e^{s^2{(b_i - a_i)}^2/8} \right)\\
+    =& \inf_{s>0} \exp\left( {-st} + \frac{s^2}{8} \sum^{n}_{i=1} {{(b_i - a_i)}^2} \right)\\
+    =& \exp \left( \frac{-2t^2}{\sum^{n}_{i=1} {(b_i - a_i)}^2} \right)
+\end{align*}
+
+\begin{theorem}
+    \textbf{(Hoeffding's Inequality).}
+    For bounded random variables $ X_i \in [a_i, b_i] $, where $ X_1, \ldots, X_n $ are independent, then
+    \begin{equation}
+    \mathbb{P}\left\{ S_n - \mathbb{E}S_n \ge t \right\} \le \exp \left( \frac{-2t^2}{\sum^{n}_{i=1} {(b_i - a_i)}^2}  \right)
+    \end{equation}
+    \begin{equation}
+    \mathbb{P}\left\{ \mathbb{E}S_n - S_n \ge t \right\} \le \exp \left( \frac{-2t^2}{\sum^{n}_{i=1} {(b_i - a_i)}^2}  \right)
+    \end{equation}
+\end{theorem}
+
+In PAC learning task, if $ l(h, (\vec{x}, y)) \in [0, 1] $,
+\[
+    \mathbb{P}\left\{ \left| L_S(h) - L_\mathcal{D}(h) \right| \ge \epsilon \right\} \le 2 \exp \left( \frac{-2\epsilon^2 m}{\frac{1}{m} \sum^{m}_{i=1} {(b_i - a_i)}^2}  \right) = 2 e^{-2\epsilon^2 m}
+\]
+
+\section{McDiarmid's Inequality}%
+\label{sec:mcdiarmid_s_inequality}
+
+\begin{theorem}
+    \textbf{(McDiarmid's Inequality).}
+    Consider independent random variables $ X_1, \ldots, X_n \in \mathcal{X} $, the function $ \phi $ satisfies
+    \[
+        \phi(x_1, \ldots, x_{i-1}, x_i, x_{i+1}, \ldots, x_n) - \phi(x_1, \ldots, x_{i-1}, {x'}_i, x_{i+1}, \ldots, x_n) \in [a_i, b_i]
+    \]
+    then,
+    \begin{equation}
+        \mathbb{P}\left\{ \phi(X_1, \ldots, X_n) - \mathbb{E} \phi \ge t \right\} \le \exp\left\{ \frac{-2t^2}{\sum^{n}_{i=1} {(a_i - b_i)}^2}  \right\}
+    \end{equation}
+    \begin{equation}
+        \mathbb{P}\left\{ \mathbb{E}\phi - \phi(X_1, \ldots, X_n) \ge t \right\} \le \exp\left\{ \frac{-2t^2}{\sum^{n}_{i=1} {(a_i - b_i)}^2}  \right\}
+    \end{equation}
+    \begin{proof}
+        We denote $ V_i = \mathbb{E}_{X_{i+1}, \ldots, X_n}[\phi | X_1, \ldots, X_i] - \mathbb{E}_{X_i, \ldots, X_n}[\phi | X_1, \ldots, X_{i-1}] $, then
+        $ \sum^{n}_{i=1} V_i = \phi(X_1, \ldots, X_n) - \mathbb{E}_{X_1, \ldots, X_n}\phi $.\\
+        \[
+            L_i = \inf_x \mathbb{E}_{X_{i+1}, \ldots, X_n} [\phi | X_1, \ldots, X_{i-1}, x] - \mathbb{E}_{x_i, \ldots, X_n}[\phi | X_1, \ldots, X_{i-1}]
+        \]
+        \[
+            U_i = \sup_x \mathbb{E}_{X_{i+1}, \ldots, X_n} [\phi | X_1, \ldots, X_{i-1}, x] - \mathbb{E}_{x_i, \ldots, X_n}[\phi | X_1, \ldots, X_{i-1}]
+        \]
+        Then, $ L_i \le V_i \le U_i $.Because $ L_i \ge L_i - U_i \ge a_i $ and $ U_i \le U_i - L_i \le b_i $,
+        therefore $ a_i \le V_i \le b_i $.
+        By Hoeffding, we have
+        \[
+            \mathbb{P}(\phi - \mathbb{E}\phi \ge t) \le \inf_{s > 0} e^{-st} \mathbb{E}_{X_1, \ldots, X_n} \left( \prod^{n}_{i=1} e^{sV_i} \right)
+        \]
+        Now, we look into $ \mathbb{E}_{X_1, \ldots, X_n} \left( \prod^{n}_{i=1} e^{sV_i} \right)$:
+        \begin{align*}
+            \mathbb{E}_{X_1, \ldots, X_n} \left( \prod^{n}_{i=1} e^{sV_i} \right)
+            =& \mathbb{E}_{X_1, \ldots, X_{n-1}} \left( \prod^{n-1}_{i=1} e^{sV_i} \cdot \mathbb{E}_{X_n} e^{sV_n}\right)\\
+            \le& \mathbb{E}_{X_1, \ldots, X_{n-1}} \left( \prod^{n-1}_{i=1} e^{sV_i} \cdot \right) e^{s^2 {(a_n - b_n)}^2 / 8}\\
+            \ldots& \le \exp \left( s^2 \sum^{n}_{i=1} {(a_i - b_i)}^2/8 \right)
+        \end{align*}
+    \end{proof}
+\end{theorem}
+\end{document}
+
